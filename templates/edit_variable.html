@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Variable Costs</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        form { max-width: 400px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; border-radius: 4px; }
+        button:hover { background-color: #45a049; }
+        a { margin-left: 10px; color: #008CBA; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <h1>Edit Variable Costs</h1>
+    <form method="POST">
+        <label for="provisions">Provisions:</label>
+        <input type="number" name="provisions" value="{{ variable.provisions }}" required>
+
+        <label for="vegetables">Vegetables:</label>
+        <input type="number" name="vegetables" value="{{ variable.vegetables }}" required>
+
+        <label for="fruits">Fruits:</label>
+        <input type="number" name="fruits" value="{{ variable.fruits }}" required>
+
+        <label for="meat_egg">Meat & Eggs:</label>
+        <input type="number" name="meat_egg" value="{{ variable.meat_egg }}" required>
+
+        <label for="water">Water:</label>
+        <input type="number" name="water" value="{{ variable.water }}" required>
+
+        <label for="transport">Transport:</label>
+        <input type="number" name="transport" value="{{ variable.transport }}" required>
+
+        <label for="others">Others:</label>
+        <input type="number" name="others" value="{{ variable.others }}" required>
+
+        <button type="submit">Update Variable Costs</button>
+        <a href="{{ url_for('index') }}">Cancel</a>
+    </form>
+</body>
+</html>
