@@ -1,11 +1,8 @@
 .env
-__pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-venv/
-.venv/
 instance/
 .pytest_cache/
 *.sqlite3
