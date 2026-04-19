@@ -9,8 +9,15 @@ load_dotenv()
 app = Flask(__name__)
 
 # DATABASE
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+database_url = os.getenv('DATABASE_URL')
+
+if database_url and database_url.startswith('postgresql://'):
+    database_url = database_url.replace('postgresql://', 'postgresql+psycopg2://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url or 'sqlite:///expenses.db'  # Fallback to SQLite
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    "connect_args": {"sslmode": "require"}
+}
 
 db = SQLAlchemy(app)
 
@@ -55,10 +62,66 @@ class VariableCost(db.Model):
             + (self.others or 0)
         )
 
+# Create tables
+with app.app_context():
+    db.create_all()
+
 # ---------------- ROUTES ----------------
 
 @app.route('/')
 def index():
+    fixed = FixedCost.query.first()  # Assuming one fixed cost entry
+    variable = VariableCost.query.all()
+    fixed_total_sum = fixed.total if fixed else 0
+    variable_total_sum = sum(item.total for item in variable)
+    overall_total_sum = fixed_total_sum + variable_total_sum
+
+    # Data for charts
+    # Pie chart for fixed costs
+    if fixed:
+        pie_labels = ['Rent', 'Electricity', 'Gas', 'WiFi']
+        pie_data = [fixed.rent or 0, fixed.eb or 0, fixed.gas or 0, fixed.wifi or 0]
+    else:
+        pie_labels = []
+        pie_data = []
+
+    # Bar chart for variable cost categories
+    bar_labels = ['Provisions', 'Vegetables', 'Fruits', 'Meat & Eggs', 'Water', 'Transport', 'Others']
+    bar_data = [
+        sum(v.provisions or 0 for v in variable),
+        sum(v.vegetables or 0 for v in variable),
+        sum(v.fruits or 0 for v in variable),
+        sum(v.meat_egg or 0 for v in variable),
+        sum(v.water or 0 for v in variable),
+        sum(v.transport or 0 for v in variable),
+        sum(v.others or 0 for v in variable),
+    ]
+
+    # Line chart for variable costs over time
+    from collections import defaultdict
+    date_totals = defaultdict(int)
+    for v in variable:
+        if v.date:
+            date_totals[v.date] += v.total
+    line_labels = sorted([d.strftime('%Y-%m-%d') for d in date_totals.keys()])
+    line_data = [date_totals[d] for d in sorted(date_totals.keys())]
+
+    return render_template(
+        'dashboard.html',
+        fixed_total_sum=fixed_total_sum,
+        variable_total_sum=variable_total_sum,
+        overall_total_sum=overall_total_sum,
+        pie_labels=pie_labels,
+        pie_data=pie_data,
+        bar_labels=bar_labels,
+        bar_data=bar_data,
+        line_labels=line_labels,
+        line_data=line_data,
+    )
+
+
+@app.route('/data')
+def view_data():
     fixed = FixedCost.query.all()
     variable = VariableCost.query.all()
     fixed_total_sum = sum(item.total for item in fixed)
@@ -174,9 +237,58 @@ def edit_variable(id):
         db.session.commit()
         return redirect(url_for('index'))
     return render_template('edit_variable.html', variable=data)
+from flask import jsonify
+from datetime import datetime
+
+@app.route('/get-expenses')
+def get_expenses():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+
+    query = VariableCost.query
+
+    if start_date and end_date:
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        query = query.filter(VariableCost.date.between(start, end))
+
+    variable = query.all()
+    fixed = FixedCost.query.first()
+
+    fixed_total_sum = fixed.total if fixed else 0
+    variable_total_sum = sum(v.total for v in variable)
+    overall_total_sum = fixed_total_sum + variable_total_sum
+
+    bar_data = [
+        sum(v.provisions or 0 for v in variable),
+        sum(v.vegetables or 0 for v in variable),
+        sum(v.fruits or 0 for v in variable),
+        sum(v.meat_egg or 0 for v in variable),
+        sum(v.water or 0 for v in variable),
+        sum(v.transport or 0 for v in variable),
+        sum(v.others or 0 for v in variable),
+    ]
+
+    from collections import defaultdict
+    date_totals = defaultdict(int)
+    for v in variable:
+        if v.date:
+            date_totals[v.date] += v.total
+
+    line_labels = sorted([d.strftime('%Y-%m-%d') for d in date_totals.keys()])
+    line_data = [date_totals[d] for d in sorted(date_totals.keys())]
+
+    return jsonify({
+        "fixed_total": fixed_total_sum,
+        "variable_total": variable_total_sum,
+        "overall_total": overall_total_sum,
+        "bar_data": bar_data,
+        "line_labels": line_labels,
+        "line_data": line_data
+    })
 
 
 # ---------------- RUN ----------------
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000)
     
