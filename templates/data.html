@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>All Data</title>
+
+    <style>
+        body { font-family: Arial; background:#f4f4f4; padding:20px; }
+        table { width:100%; border-collapse:collapse; margin-bottom:30px; background:white;}
+        th,td { padding:8px; border:1px solid #ddd; text-align:center; }
+        th { background:#007bff; color:white; }
+
+        a { padding:5px 10px; text-decoration:none; color:white; border-radius:5px; }
+        .edit { background:orange; }
+        .delete { background:red; }
+
+        .top { text-align:center; margin-bottom:20px; }
+    </style>
+</head>
+
+<body>
+
+<div class="top">
+    <a href="{{ url_for('index') }}">⬅ Back Dashboard</a>
+</div>
+
+<!-- FIXED -->
+<h2>Fixed Costs</h2>
+<table>
+<tr><th>Rent</th><th>EB</th><th>Gas</th><th>Wifi</th><th>Action</th></tr>
+{% for f in fixed %}
+<tr>
+<td>{{ f.rent }}</td>
+<td>{{ f.eb }}</td>
+<td>{{ f.gas }}</td>
+<td>{{ f.wifi }}</td>
+<td>
+<a href="{{ url_for('edit_fixed', id=f.id) }}" class="edit">Edit</a>
+<a href="{{ url_for('delete_fixed', id=f.id) }}" class="delete">Delete</a>
+</td>
+</tr>
+{% endfor %}
+</table>
+
+<!-- VARIABLE -->
+<h2>Variable Costs</h2>
+<table>
+<tr><th>Date</th><th>Total</th><th>Action</th></tr>
+{% for v in variable %}
+<tr>
+<td>{{ v.date }}</td>
+<td>{{ v.total }}</td>
+<td>
+<a href="{{ url_for('edit_variable', id=v.id) }}" class="edit">Edit</a>
+<a href="{{ url_for('delete_variable', id=v.id) }}" class="delete">Delete</a>
+</td>
+</tr>
+{% endfor %}
+</table>
+
+<!-- EB -->
+<h3>Electricity Board</h3>
+<table border="1">
+<tr>
+    <th>Date</th>
+    <th>Meter</th>
+    <th>Daily Units</th>
+    <th>Total Units</th>
+    <th>Slab</th>
+    <th>Daily Cost</th>
+    <th>Total Cost</th>
+</tr>
+
+{% for e in eb_data %}
+<tr>
+    <td>{{ e.date }}</td>
+    <td>{{ e.meter_reading }}</td>
+    <td>{{ e.daily_units }}</td>
+    <td>{{ e.total_units }}</td>
+    <td>{{ e.slab_rate }}</td>
+    <td>{{ e.daily_cost }}</td>
+    <td>{{ e.total_cost }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<!-- DETAILS -->
+<h3>Expense Details</h3>
+<table border="1">
+<tr>
+    <th>Date</th>
+    <th>Provisions</th><th>Cost</th>
+    <th>Vegetables</th><th>Cost</th>
+    <th>Fruits</th><th>Cost</th>
+    <th>Meat</th><th>Cost</th>
+    <th>Water</th><th>Cost</th>
+    <th>Transport</th><th>Cost</th>
+    <th>Others</th><th>Cost</th>
+    <th>Total</th>
+</tr>
+
+{% for d in details %}
+<tr>
+    <td>{{ d.date }}</td>
+    <td>{{ d.provisions }}</td><td>{{ d.provisions_cost }}</td>
+    <td>{{ d.vegetables }}</td><td>{{ d.vegetables_cost }}</td>
+    <td>{{ d.fruits }}</td><td>{{ d.fruits_cost }}</td>
+    <td>{{ d.meat_egg }}</td><td>{{ d.meat_egg_cost }}</td>
+    <td>{{ d.water }}</td><td>{{ d.water_cost }}</td>
+    <td>{{ d.transport }}</td><td>{{ d.transport_cost }}</td>
+    <td>{{ d.others }}</td><td>{{ d.others_cost }}</td>
+    <td>{{ d.total }}</td>
+</tr>
+{% endfor %}
+</table>

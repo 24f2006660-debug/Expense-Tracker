@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Expense Details</title>
+    <button type="button" onclick="addRow()">+ Add More</button>
+
+<div id="extraRows"></div>
+
+<button type="button" onclick="addRow()">+ Add More</button>
+
+<div id="extraRows"></div>
+
+<script>
+function addRow(){
+    const div = document.createElement("div");
+    div.innerHTML = `
+        <input name="others" placeholder="Extra Item">
+        <input name="others_cost" type="number" placeholder="Cost">
+    `;
+    document.getElementById("extraRows").appendChild(div);
+}
+</script>   
+
+<script>
+function addRow(){
+    const div = document.createElement("div");
+    div.innerHTML = `
+        <input name="others" placeholder="Extra Item">
+        <input name="others_cost" type="number" placeholder="Cost">
+    `;
+    document.getElementById("extraRows").appendChild(div);
+}
+</script>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #eef2f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .box {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            width: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 6px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: green;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: darkgreen;
+        }
+
+        .back {
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="box">
+    <h2>Expense Details</h2>
+
+    <form method="POST">
+
+        <input name="provisions" placeholder="Provisions (what bought)">
+        <input type="number" name="provisions_cost" placeholder="Cost">
+
+        <input name="vegetables" placeholder="Vegetables">
+        <input type="number" name="vegetables_cost" placeholder="Cost">
+
+        <input name="fruits" placeholder="Fruits">
+        <input type="number" name="fruits_cost" placeholder="Cost">
+
+        <input name="meat_egg" placeholder="Meat & Eggs">
+        <input type="number" name="meat_egg_cost" placeholder="Cost">
+
+        <input type="number" name="water" placeholder="Water (litres)">
+        <input type="number" name="water_cost" placeholder="Cost">
+
+        <input name="transport" placeholder="Transport">
+        <input type="number" name="transport_cost" placeholder="Cost">
+
+        <input name="others" placeholder="Others">
+        <input type="number" name="others_cost" placeholder="Cost">
+
+        <button type="submit">Save</button>
+
+    </form>
+
+    <div class="back">
+        <a href="{{ url_for('index') }}">⬅ Back to Dashboard</a>
+    </div>
+</div>
+
+</body>
+</html>

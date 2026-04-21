@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date
 import os
@@ -7,9 +7,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "fallback_secret")
+
+USERNAME = "admin"
+PASSWORD = "0011"
 
 # DATABASE
 database_url = os.getenv('DATABASE_URL')
+print("DATABASE_URL:", database_url) 
 
 if database_url:
     if database_url.startswith("postgres://"):
@@ -50,7 +55,6 @@ class VariableCost(db.Model):
     water = db.Column(db.Integer)
     transport = db.Column(db.Integer)
     others = db.Column(db.Integer)
-
     @property
     def total(self):
         return (
@@ -63,19 +67,103 @@ class VariableCost(db.Model):
             + (self.others or 0)
         )
 
+class ElectricityBoard(db.Model):
+    __tablename__ = "electricity_board"
+
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date)
+    meter_reading = db.Column(db.Integer)
+    daily_units = db.Column(db.Integer)
+    total_units = db.Column(db.Integer)
+    slab_rate = db.Column(db.Integer)
+    daily_cost = db.Column(db.Integer)
+    total_cost = db.Column(db.Integer)
+
+class ExpenseDetails(db.Model):
+    __tablename__ = "expense_details"
+
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date)
+
+    provisions = db.Column(db.String)
+    provisions_cost = db.Column(db.Integer)
+
+    vegetables = db.Column(db.String)
+    vegetables_cost = db.Column(db.Integer)
+
+    fruits = db.Column(db.String)
+    fruits_cost = db.Column(db.Integer)
+
+    meat_egg = db.Column(db.String)
+    meat_egg_cost = db.Column(db.Integer)
+
+    water = db.Column(db.Integer)
+    water_cost = db.Column(db.Integer)
+
+    transport = db.Column(db.String)
+    transport_cost = db.Column(db.Integer)
+
+    others = db.Column(db.String)
+    others_cost = db.Column(db.Integer)
+
+    @property
+    def total(self):
+        return (
+            (self.provisions_cost or 0) +
+            (self.vegetables_cost or 0) +
+            (self.fruits_cost or 0) +
+            (self.meat_egg_cost or 0) +
+            (self.water_cost or 0) +
+            (self.transport_cost or 0) +
+            (self.others_cost or 0)
+        )
+
+
 # Create tables
 with app.app_context():
     db.create_all()
 
 # ---------------- ROUTES ----------------
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        if username == USERNAME and password == PASSWORD:
+            session['user'] = username
+            return redirect(url_for('index'))
+        else:
+            return "Invalid Credentials"
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('login'))
 
 @app.route('/')
 def index():
+    if 'user' not in session:
+        return redirect(url_for('login'))
     fixed = FixedCost.query.first()  # Assuming one fixed cost entry
     variable = VariableCost.query.all()
+    details = ExpenseDetails.query.all()
+    eb_data = ElectricityBoard.query.all()
     fixed_total_sum = fixed.total if fixed else 0
     variable_total_sum = sum(item.total for item in variable)
     overall_total_sum = fixed_total_sum + variable_total_sum
+    details_column_total = {
+    "provisions": sum(d.provisions_cost or 0 for d in details),
+    "vegetables": sum(d.vegetables_cost or 0 for d in details),
+    "fruits": sum(d.fruits_cost or 0 for d in details),
+    "meat_egg": sum(d.meat_egg_cost or 0 for d in details),
+    "water": sum(d.water_cost or 0 for d in details),
+    "transport": sum(d.transport_cost or 0 for d in details),
+    "others": sum(d.others_cost or 0 for d in details),
+}
 
     # Data for charts
     # Pie chart for fixed costs
@@ -118,6 +206,9 @@ def index():
         bar_data=bar_data,
         line_labels=line_labels,
         line_data=line_data,
+        details=details,
+details_column_total=details_column_total,eb_data=eb_data
+        
     )
 
 
@@ -125,18 +216,16 @@ def index():
 def view_data():
     fixed = FixedCost.query.all()
     variable = VariableCost.query.all()
-    fixed_total_sum = sum(item.total for item in fixed)
-    variable_total_sum = sum(item.total for item in variable)
-    overall_total_sum = fixed_total_sum + variable_total_sum
+    details = ExpenseDetails.query.all()
+    eb = ElectricityBoard.query.all()
+
     return render_template(
-        'index.html',
+        'data.html',
         fixed=fixed,
         variable=variable,
-        fixed_total_sum=fixed_total_sum,
-        variable_total_sum=variable_total_sum,
-        overall_total_sum=overall_total_sum,
+        details=details,
+        eb=eb
     )
-
 
 # -------- ADD FIXED --------
 @app.route('/add_fixed', methods=['GET', 'POST'])
@@ -189,6 +278,86 @@ def add_variable():
         return redirect(url_for('index'))
 
     return render_template('add_variable.html')
+
+@app.route('/add_eb', methods=['GET', 'POST'])
+def add_eb():
+    if request.method == 'POST':
+        reading = int(request.form['meter_reading'])
+        slab_rate = int(request.form['slab_rate'])
+
+        last = ElectricityBoard.query.order_by(ElectricityBoard.id.desc()).first()
+
+        if last:
+            daily_units = reading - last.meter_reading
+            total_units = (last.total_units or 0) + daily_units
+            total_cost = (last.total_cost or 0) + (daily_units * slab_rate)
+        else:
+            daily_units = 0
+            total_units = 0
+            total_cost = 0
+
+        daily_cost = daily_units * slab_rate
+
+        new = ElectricityBoard(
+            date=date.today(),
+            meter_reading=reading,
+            daily_units=daily_units,
+            total_units=total_units,
+            slab_rate=slab_rate,
+            daily_cost=daily_cost,
+            total_cost=total_cost
+        )
+
+        db.session.add(new)
+
+        # 🔥 UPDATE FixedCost EB automatically
+        fixed = FixedCost.query.first()
+        if fixed:
+            fixed.eb = total_cost
+        else:
+            fixed = FixedCost(eb=total_cost)
+            db.session.add(fixed)
+
+        db.session.commit()
+
+        return redirect(url_for('index'))
+
+    return render_template('add_eb.html')
+
+@app.route('/add_details', methods=['GET', 'POST'])
+def add_details():
+    if request.method == 'POST':
+        new = ExpenseDetails(
+            date=date.today(),
+            provisions=request.form['provisions'],
+            provisions_cost=int(request.form['provisions_cost']),
+
+            vegetables=request.form['vegetables'],
+            vegetables_cost=int(request.form['vegetables_cost']),
+
+            fruits=request.form['fruits'],
+            fruits_cost=int(request.form['fruits_cost']),
+
+            meat_egg=request.form['meat_egg'],
+            meat_egg_cost=int(request.form['meat_egg_cost']),
+
+            water=int(request.form['water']),
+            water_cost=int(request.form['water_cost']),
+
+            transport=request.form['transport'],
+            transport_cost=int(request.form['transport_cost']),
+
+            others=request.form['others'],
+            others_cost=int(request.form['others_cost'])
+        )
+
+        db.session.add(new)
+        db.session.commit()
+
+        return redirect(url_for('index'))
+
+    return render_template('add_details.html')
+
 
 
 # -------- DELETE FIXED --------

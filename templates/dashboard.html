@@ -1,208 +1,157 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker Dashboard</title>
+    <title>Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
+        body { font-family: Arial; background:#f5f7fa; margin:0; }
+
+        .top {
+            background:#007bff;
+            color:white;
+            padding:15px;
+            display:flex;
+            justify-content:space-between;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+
+        .container { padding:20px; }
+
+        .cards {
+            display:flex;
+            gap:15px;
+            margin:20px 0;
         }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 30px;
-        }
-        .summary {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 30px;
-        }
+
         .card {
-            background-color: #e9ecef;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            flex: 1;
-            margin: 0 10px;
+            flex:1;
+            padding:20px;
+            border-radius:10px;
+            color:white;
+            text-align:center;
         }
-        .card h3 {
-            margin: 0;
-            color: #495057;
+
+        .fixed { background:#6c757d; }
+        .variable { background:#28a745; }
+        .total { background:#007bff; }
+
+        .btn {
+            padding:10px 15px;
+            background:#28a745;
+            color:white;
+            text-decoration:none;
+            border-radius:6px;
+            margin:5px;
+            display:inline-block;
         }
-        .card p {
-            font-size: 24px;
-            font-weight: bold;
-            color: #007bff;
-            margin: 10px 0 0 0;
-        }
+
+        .logout-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    padding: 6px 12px;
+    font-size: 12px;
+    background: #dc3545;
+    color: white;
+    border-radius: 5px;
+    text-decoration: none;
+}
+.logout-btn:hover {
+    background: #c82333;
+}
+
         .charts {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
+            display:flex;
+            gap:20px;
+            flex-wrap:wrap;
         }
-        .chart-container {
-            flex: 1;
-            min-width: 300px;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 5px rgba(0,0,0,0.1);
-        }
-        .add-btns {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .add-btn {
-            display: inline-block;
-            padding: 10px 15px;
-            background-color: #28a745;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            margin: 0 5px;
-        }
-        .add-btn:hover {
-            background-color: #218838;
-        }
-        .view-data {
-            text-align: center;
-            margin-top: 20px;
-        }
-        .view-data a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        .view-data a:hover {
-            text-decoration: underline;
+
+        .chart-box {
+            background:white;
+            padding:15px;
+            border-radius:10px;
+            flex:1;
+            min-width:300px;
         }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        <h1>Expense Tracker Dashboard</h1>
-        <div style="text-align:center; margin-bottom:20px;">
+
+<div class="top">
+    <h2>Expense Tracker</h2>
+    <a href="{{ url_for('logout') }}" class="btn logout">Logout</a>
+</div>
+
+<div class="container">
+
+    <!-- BUTTONS -->
+    <div style="text-align:center;">
+        <a href="{{ url_for('add_fixed') }}" class="btn">+ Fixed</a>
+        <a href="{{ url_for('add_variable') }}" class="btn">+ Variable</a>
+        <a href="{{ url_for('add_eb') }}" class="btn">+ EB</a>
+        <a href="{{ url_for('add_details') }}" class="btn">+ Details</a>
+        <a href="{{ url_for('view_data') }}" class="btn">📊 View Tables</a>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="cards">
+        <div class="card fixed">
+            <h3>Fixed</h3>
+            ₹{{ fixed_total_sum }}
+        </div>
+
+        <div class="card variable">
+            <h3>Variable</h3>
+            ₹{{ variable_total_sum }}
+        </div>
+
+        <div class="card total">
+            <h3>Total</h3>
+            ₹{{ overall_total_sum }}
+        </div>
+    </div>
+    <div style="text-align:center; margin-bottom:20px;">
     <input type="date" id="startDate">
     <input type="date" id="endDate">
     <button onclick="filterData()" class="add-btn">Filter</button>
 </div>
-        <div class="add-btns">
-            <a href="{{ url_for('add_fixed') }}" class="add-btn">+ Add Fixed Costs</a>
-            <a href="{{ url_for('add_variable') }}" class="add-btn">+ Add Variable Costs</a>
+
+    <!-- CHARTS -->
+    <div class="charts">
+        <div class="chart-box">
+            <canvas id="pieChart"></canvas>
         </div>
-        <div class="summary">
-            <div class="card">
-                <h3>Fixed Costs</h3>
-                <p id="fixedTotal">₹{{ fixed_total_sum }}</p>
-            </div>
-            <div class="card">
-                <h3>Variable Costs</h3>
-                <p id="variableTotal">₹{{ variable_total_sum }}</p>
-            </div>
-            <div class="card">
-                <h3>Overall Total</h3>
-                <p id="overallTotal">₹{{ overall_total_sum }}</p>
-            </div>
+
+        <div class="chart-box">
+            <canvas id="barChart"></canvas>
         </div>
-        <div class="charts">
-            <div class="chart-container">
-                <h3>Fixed Cost Breakdown</h3>
-                <canvas id="pieChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <h3>Variable Cost Categories</h3>
-                <canvas id="barChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <h3>Variable Costs Over Time</h3>
-                <canvas id="lineChart"></canvas>
-            </div>
-        </div>
-        <div class="view-data">
-            <a href="{{ url_for('view_data') }}">View Detailed Data</a>
+
+        <div class="chart-box">
+            <canvas id="lineChart"></canvas>
         </div>
     </div>
 
-    <script>
-let pieChart, barChart, lineChart;
+</div>
 
-function initCharts() {
-    pieChart = new Chart(document.getElementById('pieChart'), {
-        type: 'pie',
-        data: {
-            labels: {{ pie_labels|tojson }},
-            datasets: [{
-                data: {{ pie_data|tojson }},
-                backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0']
-            }]
-        }
-    });
+<script>
+new Chart(document.getElementById('pieChart'), {
+    type:'pie',
+    data:{ labels: {{ pie_labels|tojson }}, datasets:[{data: {{ pie_data|tojson }} }] }
+});
 
-    barChart = new Chart(document.getElementById('barChart'), {
-        type: 'bar',
-        data: {
-            labels: ['Provisions','Vegetables','Fruits','Meat & Eggs','Water','Transport','Others'],
-            datasets: [{
-                label: 'Amount (₹)',
-                data: {{ bar_data|tojson }},
-                backgroundColor: '#36A2EB'
-            }]
-        }
-    });
+new Chart(document.getElementById('barChart'), {
+    type:'bar',
+    data:{ labels:['Prov','Veg','Fruits','Meat','Water','Transport','Others'],
+           datasets:[{data: {{ bar_data|tojson }} }] }
+});
 
-    lineChart = new Chart(document.getElementById('lineChart'), {
-        type: 'line',
-        data: {
-            labels: {{ line_labels|tojson }},
-            datasets: [{
-                label: 'Total Variable Cost (₹)',
-                data: {{ line_data|tojson }},
-                borderColor: '#FF6384',
-                fill: true
-            }]
-        }
-    });
-}
-
-function filterData() {
-    const start = document.getElementById('startDate').value;
-    const end = document.getElementById('endDate').value;
-
-    if (!start || !end) {
-        alert("Select both dates");
-        return;
-    }
-
-    fetch(`/get-expenses?start_date=${start}&end_date=${end}`)
-    .then(res => res.json())
-    .then(data => {
-
-        document.getElementById('fixedTotal').innerText = "₹" + data.fixed_total;
-        document.getElementById('variableTotal').innerText = "₹" + data.variable_total;
-        document.getElementById('overallTotal').innerText = "₹" + data.overall_total;
-
-        barChart.data.datasets[0].data = data.bar_data;
-        barChart.update();
-
-        lineChart.data.labels = data.line_labels;
-        lineChart.data.datasets[0].data = data.line_data;
-        lineChart.update();
-    });
-}
-
-initCharts();
+new Chart(document.getElementById('lineChart'), {
+    type:'line',
+    data:{ labels: {{ line_labels|tojson }},
+           datasets:[{data: {{ line_data|tojson }} }] }
+});
 </script>
+
 </body>
 </html>
